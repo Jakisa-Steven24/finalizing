@@ -3,24 +3,89 @@ require_once 'includes/db.php';
 require_once 'includes/functions.php';
 require_superadmin();
 
-$q = get_string('q'); if (strlen($q) > 100) $q = '';
-$actionFilter = get_string('action'); if ($actionFilter !== '' && !preg_match('/^[A-Z_]{2,30}$/', $actionFilter)) $actionFilter = '';
-$entityFilter = get_string('entity'); if (strlen($entityFilter) > 60) $entityFilter = '';
-$dateFrom = get_string('date_from'); if ($dateFrom !== '' && !valid_date_value($dateFrom)) $dateFrom = '';
-$dateTo = get_string('date_to'); if ($dateTo !== '' && !valid_date_value($dateTo)) $dateTo = '';
-if ($dateFrom !== '' && $dateTo !== '' && $dateFrom > $dateTo) { $dateFrom = ''; $dateTo = ''; }
-$page = min(get_positive_int('page', 1), 10000); $perPage = 50;
-$where = []; $types = ''; $params = [];
-if ($q !== '') { $where[] = '(a.description LIKE ? OR u.username LIKE ? OR u.full_name LIKE ?)'; $types .= 'sss'; $params[] = '%' . $q . '%'; $params[] = '%' . $q . '%'; $params[] = '%' . $q . '%'; }
-if ($actionFilter !== '') { $where[] = 'a.action = ?'; $types .= 's'; $params[] = $actionFilter; }
-if ($entityFilter !== '') { $where[] = 'a.entity LIKE ?'; $types .= 's'; $params[] = '%' . $entityFilter . '%'; }
-if ($dateFrom !== '') { $where[] = 'a.created_at >= ?'; $types .= 's'; $params[] = $dateFrom . ' 00:00:00'; }
-if ($dateTo !== '') { $where[] = 'a.created_at <= ?'; $types .= 's'; $params[] = $dateTo . ' 23:59:59'; }
+$q = get_string('q');
+if (strlen($q) > 100) {
+    $q = '';
+}
+
+$actionFilter = get_string('action');
+if ($actionFilter !== '' && !preg_match('/^[A-Z_]{2,30}$/', $actionFilter)) {
+    $actionFilter = '';
+}
+
+$entityFilter = get_string('entity');
+if (strlen($entityFilter) > 60) {
+    $entityFilter = '';
+}
+
+$dateFrom = get_string('date_from');
+if ($dateFrom !== '' && !valid_date_value($dateFrom)) {
+    $dateFrom = '';
+}
+
+$dateTo = get_string('date_to');
+if ($dateTo !== '' && !valid_date_value($dateTo)) {
+    $dateTo = '';
+}
+
+if ($dateFrom !== '' && $dateTo !== '' && $dateFrom > $dateTo) {
+    $dateFrom = '';
+    $dateTo = '';
+}
+
+$page = min(get_positive_int('page', 1), 10000);
+$perPage = 50;
+
+$where = [];
+$types = '';
+$params = [];
+
+if ($q !== '') {
+    $where[] = '(a.description LIKE ? OR u.username LIKE ? OR u.full_name LIKE ?)';
+    $types .= 'sss';
+    $params[] = '%' . $q . '%';
+    $params[] = '%' . $q . '%';
+    $params[] = '%' . $q . '%';
+}
+
+if ($actionFilter !== '') {
+    $where[] = 'a.action = ?';
+    $types .= 's';
+    $params[] = $actionFilter;
+}
+
+if ($entityFilter !== '') {
+    $where[] = 'a.entity LIKE ?';
+    $types .= 's';
+    $params[] = '%' . $entityFilter . '%';
+}
+
+if ($dateFrom !== '') {
+    $where[] = 'a.created_at >= ?';
+    $types .= 's';
+    $params[] = $dateFrom . ' 00:00:00';
+}
+
+if ($dateTo !== '') {
+    $where[] = 'a.created_at <= ?';
+    $types .= 's';
+    $params[] = $dateTo . ' 23:59:59';
+}
+
 $whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
+
 $total = (int)(db_one($conn, 'SELECT COUNT(*) AS total FROM audit_log a LEFT JOIN app_users u ON u.user_id = a.user_id' . $whereSql, $types, $params)['total'] ?? 0);
-$pages = max(1, (int)ceil($total / $perPage)); if ($page > $pages) $page = $pages; $offset = ($page - 1) * $perPage;
+
+$pages = max(1, (int)ceil($total / $perPage));
+if ($page > $pages) {
+    $page = $pages;
+}
+$offset = ($page - 1) * $perPage;
+
 $rows = db_result($conn, 'SELECT a.audit_id, a.action, a.entity, a.record_id, a.description, a.ip_address, a.created_at, u.full_name, u.username FROM audit_log a LEFT JOIN app_users u ON u.user_id = a.user_id' . $whereSql . ' ORDER BY a.audit_id DESC LIMIT ' . $perPage . ' OFFSET ' . $offset, $types, $params);
+
 $actions = $conn->query('SELECT DISTINCT action FROM audit_log ORDER BY action');
+
 $pageTitle = 'Audit log';
 require 'includes/header.php';
 ?>

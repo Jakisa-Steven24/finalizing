@@ -2,34 +2,83 @@
 require_once 'includes/db.php';
 require_once 'includes/functions.php';
 require_login();
+
 if (current_role() !== 'student') {
     redirect_to('index.php');
 }
 
 $studentId = (int)($_SESSION['user']['student_id'] ?? 0);
-$year = get_string('academic_year'); if ($year !== '' && !valid_academic_year($year)) $year = '';
-$semester = get_string('semester'); if (!in_array($semester, ['', 'Semester 1', 'Semester 2', 'Recess'], true)) $semester = '';
-$dateFrom = get_string('date_from'); if ($dateFrom !== '' && !valid_date_value($dateFrom)) $dateFrom = '';
-$dateTo = get_string('date_to'); if ($dateTo !== '' && !valid_date_value($dateTo)) $dateTo = '';
-if ($dateFrom !== '' && $dateTo !== '' && $dateFrom > $dateTo) { $dateFrom = ''; $dateTo = ''; }
+$year = get_string('academic_year');
+if ($year !== '' && !valid_academic_year($year)) {
+    $year = '';
+}
+
+$semester = get_string('semester');
+if (!in_array($semester, ['', 'Semester 1', 'Semester 2', 'Recess'], true)) {
+    $semester = '';
+}
+
+$dateFrom = get_string('date_from');
+if ($dateFrom !== '' && !valid_date_value($dateFrom)) {
+    $dateFrom = '';
+}
+
+$dateTo = get_string('date_to');
+if ($dateTo !== '' && !valid_date_value($dateTo)) {
+    $dateTo = '';
+}
+
+if ($dateFrom !== '' && $dateTo !== '' && $dateFrom > $dateTo) {
+    $dateFrom = '';
+    $dateTo = '';
+}
 
 $student = null;
 $marks = null;
 $payments = null;
 $markSummary = ['total' => 0, 'average' => 0];
+
 if ($studentId > 0) {
     $student = db_one($conn, 'SELECT s.student_id, s.reg_no, s.first_name, s.last_name, s.gender, s.date_of_birth, s.email, s.address, c.course_code, c.course_title, d.dept_name FROM student s INNER JOIN course c ON c.course_id = s.course_id INNER JOIN department d ON d.dept_id = c.dept_id WHERE s.student_id = ? LIMIT 1', 'i', [$studentId]);
+
     if ($student) {
-        $markWhere = ['m.student_id = ?']; $markTypes = 'i'; $markParams = [$studentId];
-        if ($year !== '') { $markWhere[] = 'm.academic_year = ?'; $markTypes .= 's'; $markParams[] = $year; }
-        if ($semester !== '') { $markWhere[] = 'm.semester = ?'; $markTypes .= 's'; $markParams[] = $semester; }
+        $markWhere = ['m.student_id = ?'];
+        $markTypes = 'i';
+        $markParams = [$studentId];
+
+        if ($year !== '') {
+            $markWhere[] = 'm.academic_year = ?';
+            $markTypes .= 's';
+            $markParams[] = $year;
+        }
+
+        if ($semester !== '') {
+            $markWhere[] = 'm.semester = ?';
+            $markTypes .= 's';
+            $markParams[] = $semester;
+        }
+
         $markWhereSql = ' WHERE ' . implode(' AND ', $markWhere);
         $marks = db_result($conn, 'SELECT m.academic_year, m.semester, m.assessment_type, m.assessment_name, m.score, m.grade, m.remarks, cu.course_unit_code, cu.course_unit_title FROM mark m INNER JOIN course_unit cu ON cu.course_unit_id = m.course_unit_id' . $markWhereSql . ' ORDER BY m.academic_year DESC, m.semester ASC, cu.course_unit_code ASC, m.assessment_type ASC LIMIT 500', $markTypes, $markParams);
+
         $markSummary = db_one($conn, 'SELECT COUNT(*) AS total, COALESCE(AVG(m.score), 0) AS average FROM mark m' . $markWhereSql, $markTypes, $markParams) ?? $markSummary;
 
-        $paymentWhere = ['p.student_id = ?']; $paymentTypes = 'i'; $paymentParams = [$studentId];
-        if ($dateFrom !== '') { $paymentWhere[] = 'p.payment_date >= ?'; $paymentTypes .= 's'; $paymentParams[] = $dateFrom; }
-        if ($dateTo !== '') { $paymentWhere[] = 'p.payment_date <= ?'; $paymentTypes .= 's'; $paymentParams[] = $dateTo; }
+        $paymentWhere = ['p.student_id = ?'];
+        $paymentTypes = 'i';
+        $paymentParams = [$studentId];
+
+        if ($dateFrom !== '') {
+            $paymentWhere[] = 'p.payment_date >= ?';
+            $paymentTypes .= 's';
+            $paymentParams[] = $dateFrom;
+        }
+
+        if ($dateTo !== '') {
+            $paymentWhere[] = 'p.payment_date <= ?';
+            $paymentTypes .= 's';
+            $paymentParams[] = $dateTo;
+        }
+
         $payments = db_result($conn, 'SELECT p.payment_date, p.amount, p.payment_status, p.method, p.reference_no, f.fee_name FROM payment p INNER JOIN fee_type f ON f.fee_type_id = p.fee_type_id WHERE ' . implode(' AND ', $paymentWhere) . ' ORDER BY p.payment_date DESC, p.payment_id DESC LIMIT 500', $paymentTypes, $paymentParams);
     }
 }

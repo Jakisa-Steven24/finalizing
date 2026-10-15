@@ -181,20 +181,35 @@ require 'includes/header.php';
     </section>
 <?php else: ?>
     <?php
-    $q = get_string('q'); $q = strlen($q) <= 100 ? $q : '';
+    $q = get_string('q');
+    $q = strlen($q) <= 100 ? $q : '';
     $roleFilter = get_string('role');
     $allowedRoles = array_keys(account_allowed_roles());
-    if ($roleFilter !== '' && !in_array($roleFilter, $allowedRoles, true)) $roleFilter = '';
-    $activeFilter = get_string('active'); if (!in_array($activeFilter, ['', '0', '1'], true)) $activeFilter = '';
-    $page = min(get_positive_int('page', 1), 10000); $perPage = 25;
-    $where = []; $types = ''; $params = [];
-    if (!is_superadmin()) { $where[] = "u.role = 'student'"; }
+    if ($roleFilter !== '' && !in_array($roleFilter, $allowedRoles, true)) {
+        $roleFilter = '';
+    }
+    $activeFilter = get_string('active');
+    if (!in_array($activeFilter, ['', '0', '1'], true)) {
+        $activeFilter = '';
+    }
+    $page = min(get_positive_int('page', 1), 10000);
+    $perPage = 25;
+    $where = [];
+    $types = '';
+    $params = [];
+    if (!is_superadmin()) {
+        $where[] = "u.role = 'student'";
+    }
     if ($q !== '') { $where[] = '(u.full_name LIKE ? OR u.username LIKE ? OR u.email LIKE ?)'; $types .= 'sss'; $params[] = '%' . $q . '%'; $params[] = '%' . $q . '%'; $params[] = '%' . $q . '%'; }
     if ($roleFilter !== '') { $where[] = 'u.role = ?'; $types .= 's'; $params[] = $roleFilter; }
     if ($activeFilter !== '') { $where[] = 'u.is_active = ?'; $types .= 'i'; $params[] = (int)$activeFilter; }
     $whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
     $total = (int)(db_one($conn, 'SELECT COUNT(*) AS total FROM app_users u' . $whereSql, $types, $params)['total'] ?? 0);
-    $pages = max(1, (int)ceil($total / $perPage)); if ($page > $pages) $page = $pages; $offset = ($page - 1) * $perPage;
+    $pages = max(1, (int)ceil($total / $perPage));
+    if ($page > $pages) {
+        $page = $pages;
+    }
+    $offset = ($page - 1) * $perPage;
     $users = db_result($conn, 'SELECT u.user_id, u.full_name, u.username, u.email, u.role, u.student_id, u.is_active, u.created_at, u.last_login, s.reg_no FROM app_users u LEFT JOIN student s ON s.student_id = u.student_id' . $whereSql . ' ORDER BY u.created_at DESC, u.user_id DESC LIMIT ' . $perPage . ' OFFSET ' . $offset, $types, $params);
     $baseQuery = ['q' => $q, 'role' => $roleFilter, 'active' => $activeFilter];
     ?>
