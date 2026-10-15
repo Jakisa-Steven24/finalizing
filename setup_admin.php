@@ -75,7 +75,7 @@ if (!$exists && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="field"><label for="full_name">Full name *</label><input id="full_name" name="full_name" required maxlength="100" value="<?= e($values['full_name']) ?>" placeholder="Enter superadmin full name"></div>
                     <div class="field"><label for="username">Username *</label><input id="username" name="username" required maxlength="60" pattern="[A-Za-z0-9_.-]{4,60}" value="<?= e($values['username']) ?>" placeholder="Choose a username"></div>
                     <div class="field"><label for="email">Email *</label><input id="email" type="email" name="email" required maxlength="120" value="<?= e($values['email']) ?>" placeholder="admin@university.edu"></div>
-                    <div class="field"><label for="password">Password *</label><input id="password" type="password" name="password" required minlength="12" maxlength="128" autocomplete="new-password" placeholder="Create a strong password"></div>
+                    <div class="field"><label for="password">Password *</label><input id="password" type="password" name="password" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Create a strong password"></div>
                 </div>
                 <p class="hint"><?= e(password_rules_message()) ?></p>
                 <button class="btn" type="submit">Create initial superadmin</button>

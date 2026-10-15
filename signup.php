@@ -101,11 +101,11 @@ require 'includes/header.php';
                 </div>
                 <div class="field">
                     <label for="new_password">Password *</label>
-                    <input id="new_password" type="password" name="password" required minlength="12" maxlength="128" autocomplete="new-password" placeholder="Create a strong password">
+                    <input id="new_password" type="password" name="password" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Create a strong password">
                 </div>
                 <div class="field">
                     <label for="confirm_password">Confirm password *</label>
-                    <input id="confirm_password" type="password" name="confirm_password" required minlength="12" maxlength="128" autocomplete="new-password" placeholder="Re-enter your password">
+                    <input id="confirm_password" type="password" name="confirm_password" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Re-enter your password">
                 </div>
             </div>
             <p class="hint"><?= e(password_rules_message()) ?></p>

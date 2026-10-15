@@ -279,7 +279,7 @@ function valid_academic_year(string $value): bool
 
 function valid_password(string $password): bool
 {
-    return strlen($password) >= 12
+    return strlen($password) >= 8
         && strlen($password) <= 128
         && preg_match('/[a-z]/', $password)
         && preg_match('/[A-Z]/', $password)
@@ -290,7 +290,7 @@ function valid_password(string $password): bool
 
 function password_rules_message(): string
 {
-    return 'Password must be 12–128 characters with upper- and lower-case letters, a number, a symbol, and no spaces.';
+    return 'Password must be 8–128 characters with upper- and lower-case letters, a number, a symbol, and no spaces.';
 }
 
 function grade_from_score(float $score): string

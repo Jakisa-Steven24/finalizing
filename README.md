@@ -42,7 +42,7 @@ A **procedural PHP + MySQL** Student Information Management System (SIMS) for Me
 - Prepared statements for all values originating from users; entity/table/column names are a reviewed allow-list in `includes/entities.php`.
 - CSRF tokens on every state-changing POST request.
 - Escaped output (`htmlspecialchars`) to mitigate XSS.
-- Passwords use PHP `password_hash()` / `password_verify()`; passwords must have 12–128 characters, upper/lower case, number, symbol and no whitespace.
+- Passwords use PHP `password_hash()` / `password_verify()`; passwords must have 8–128 characters, upper/lower case, number, symbol and no whitespace.
 - Session ID regeneration after login, strict cookie mode, HTTP-only cookies, `SameSite=Lax`, HTTPS-aware `Secure` cookies, inactivity timeout and security headers.
 - Failed account sign-ins are locked for 15 minutes after five unsuccessful attempts. Inactive/deleted-role sessions are re-checked on each protected request.
 - Role checks are enforced on the server, not only hidden in navigation.

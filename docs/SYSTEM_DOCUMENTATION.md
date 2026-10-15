@@ -114,7 +114,7 @@ Validation is deliberately duplicated between browser and server. Client-side pa
 | Academic year | Anchored `YYYY/YYYY` regex plus the second year must equal first + 1 |
 | Selects | Submitted value must be an allow-listed option |
 | Foreign keys | Positive integer plus lookup of the target row |
-| Password | 12–128 characters, lower case, upper case, digit, symbol, no whitespace |
+| Password | 8–128 characters, lower case, upper case, digit, symbol, no whitespace |
 
 ## 6. Security architecture
 
