@@ -1,51 +1,74 @@
-# MIU Student Management System
+# MIU Student Information Management System
 
-A procedural PHP + MySQL web application based on the supplied MIU SQL schema. It adds a responsive dashboard, administrator/student login roles, CRUD, searching, server/client-side validation, regular-expression input patterns, CSRF protection, password hashing, reports, and setup documentation.
+A **procedural PHP + MySQL** Student Information Management System (SIMS) for Metropolitan International University. It provides staff-managed academic data, marks, finance, reports and exports while giving students strictly read-only access to their own linked record.
 
-## Features
-- Dashboard counts for students, departments, lecturers and courses.
-- Admin-only CRUD pages for students, departments, lecturers, courses, course units, enrollments, registrations, fee types and payments.
-- Search across fields on each record page (up to 200 rows shown per query).
-- Role-based access: administrators manage data; student accounts can view their own linked record.
-- Prepared SQL statements for user-provided values, escaped HTML output, CSRF tokens for POST operations, secure password hashing and session ID regeneration at login.
-- Validation for required fields, email, phone numbers, numeric values, allowed options, and regex patterns.
-- Summary reports, students-by-course and payments-by-fee-type reports; print report action.
-- Helpful placeholders and responsive layout with footer on all authenticated pages.
+> **Fresh schema notice:** `database.sql` is a clean-install script and drops the application tables it rebuilds. Back up any existing data before importing it.
+
+## What is implemented
+
+- **Three roles:** `superadmin`, `admin`, and `student`.
+  - **Students** can only view and export their own profile, marks, and payments. Their dashboard never queries institution-wide counts.
+  - **Admins** manage student information, departments, lecturers, courses, units, enrollments, registrations, fees, payments, marks, reports and student accounts.
+  - **Superadmins** have all admin capabilities and are the **only** role allowed to create/manage administrator or superadmin accounts and view the audit log.
+- A one-time `setup_admin.php` bootstrap that creates the first **superadmin**. It cannot create a second one.
+- Student sign-up directly from the login page. Sign-up only creates a `student` role after registration number, existing university email, and date of birth match a pre-created student record. It **cannot** create an admin account.
+- Full staff CRUD for all academic and financial entities, including the new **Marks** module.
+- Filterable, searchable, sortable and paginated lists on every management page; scoped dashboard, report, audit-log and personal-record filters.
+- Server-side and HTML pattern validation. All visible inputs have placeholders or an explicit select prompt.
+- Filterable staff reports with printable layout and CSV download. Students can export only their own data.
+- Superadmin audit trail for create/update/delete/account actions, authentication and exports.
+- Detailed technical documentation and a Mermaid ERD: [`docs/SYSTEM_DOCUMENTATION.md`](docs/SYSTEM_DOCUMENTATION.md) and [`docs/ERD.md`](docs/ERD.md).
 
 ## Requirements
-- PHP 8.1+ with `mysqli` enabled
-- MySQL 8.0+ or a compatible MariaDB version
-- XAMPP/WAMP/Laragon or a similar local PHP/MySQL environment
 
-## Installation (XAMPP on Windows)
-1. Copy the `miu_project` folder into `C:\xampp\htdocs\` and rename it `miu_project` if needed.
-2. Start **Apache** and **MySQL** in the XAMPP Control Panel.
-3. Open `http://localhost/phpmyadmin`.
-4. Import `database.sql`. The script creates/uses database `miu` and creates the `app_users` table in addition to the original tables.
-   - The original SQL dump has empty data tables; no sample students/courses are included.
-5. Open `config.php` and set `DB_HOST`, `DB_NAME`, `DB_USER`, and `DB_PASS` for your MySQL setup. Default XAMPP credentials are `root` with an empty password.
-6. Visit `http://localhost/miu_project/setup_admin.php`, create the first administrator, then **delete `setup_admin.php`** from the project folder immediately.
-7. Visit `http://localhost/miu_project/login.php` and sign in.
-8. Add a department first, then a lecturer, then a course, course units, students, fee types and related records. This order respects the database foreign keys.
+- PHP **8.1+** with `mysqli` and the usual `mysqlnd` driver enabled
+- MySQL **8.0+** or a compatible current MariaDB release
+- Apache, Nginx + PHP-FPM, XAMPP, WAMP, Laragon, or equivalent
 
-## Notes about the supplied schema
-- The database is named `miu` in the SQL file.
-- The supplied `lecturer.lecturer_id` and `enrollment.enrollment_id` are not auto-increment columns. The forms therefore ask an administrator to enter these numeric IDs.
-- `student` has a required `course_id`, so create a course before creating a student.
-- `registration` and `enrollment` are separate tables in the supplied database and are both included in the interface.
-- `app_users` is a new application-authentication table. It does not replace the academic tables.
+## Installation
 
-## Security and deployment
-This project is intended for local coursework/demo use. Before public hosting, enable HTTPS, use a least-privilege MySQL account, set a strong database password, disable public access to installation files, configure secure cookie settings, add backups, and perform a security review. Never leave `setup_admin.php` on a live server.
+1. Place the project in the web server's PHP directory.
+2. Create a dedicated, least-privilege MySQL account for the application. Do **not** use the `root` account in production.
+3. Import `database.sql` with phpMyAdmin or MySQL CLI. It creates/uses database `miu`.
+4. Configure database values using environment variables (`MIU_DB_HOST`, `MIU_DB_NAME`, `MIU_DB_USER`, `MIU_DB_PASS`) or update `config.php` for local development.
+5. In local development only, set `MIU_APP_DEBUG=1` to show safe diagnostic details. Keep it disabled in production.
+6. Visit `setup_admin.php` once and create the initial superadmin.
+7. **Immediately delete or web-server-block `setup_admin.php`.**
+8. Sign in through `login.php`.
+9. Create records in dependency order: **department → lecturer → course → course unit → student → student login/marks/finance**.
+
+## Security controls
+
+- Prepared statements for all values originating from users; entity/table/column names are a reviewed allow-list in `includes/entities.php`.
+- CSRF tokens on every state-changing POST request.
+- Escaped output (`htmlspecialchars`) to mitigate XSS.
+- Passwords use PHP `password_hash()` / `password_verify()`; passwords must have 12–128 characters, upper/lower case, number, symbol and no whitespace.
+- Session ID regeneration after login, strict cookie mode, HTTP-only cookies, `SameSite=Lax`, HTTPS-aware `Secure` cookies, inactivity timeout and security headers.
+- Failed account sign-ins are locked for 15 minutes after five unsuccessful attempts. Inactive/deleted-role sessions are re-checked on each protected request.
+- Role checks are enforced on the server, not only hidden in navigation.
+- CSV formula-injection mitigation prefixes formula-like exported cell values.
+- Audit records support support/debug investigation without displaying raw database exceptions to end users.
+
+See the full deployment checklist in [`docs/SYSTEM_DOCUMENTATION.md`](docs/SYSTEM_DOCUMENTATION.md).
 
 ## Main files
-- `database.sql` — database schema/import file
-- `config.php` — database connection settings
-- `login.php`, `logout.php` — authentication
-- `index.php` — dashboard
-- `records.php` — configured CRUD pages
-- `reports.php` — reports
-- `users.php` — admin account management
-- `my_record.php` — student self-view
-- `includes/` — database, session/security helpers, layout and entity definitions
-- `assets/style.css` — responsive styling
+
+| File | Purpose |
+|---|---|
+| `database.sql` | Fresh database schema, constraints, marks, account and audit tables |
+| `config.php` | Database, debug, timezone and session settings |
+| `records.php` | Allow-listed staff CRUD, validation, search/filter/sort/pagination |
+| `users.php` | Role-aware account CRUD; superadmin controls privileged roles |
+| `signup.php` | Verified student-only self-registration |
+| `reports.php`, `export.php` | Filtered staff reports, print and CSV exports |
+| `my_record.php`, `my_export.php` | Student-scoped, read-only records and personal export |
+| `audit.php` | Superadmin troubleshooting/audit history |
+| `includes/` | Procedural security, DB, entity and reporting helpers |
+
+## Operational notes
+
+- The system deliberately does **not** ship with a default username/password. The first superadmin is installed locally through the one-time bootstrap page.
+- An account with role `student` must be linked to one existing student record. One student record can have only one login.
+- A mark is accepted only when its course unit belongs to that student's registered course. Grade is calculated server-side from score and cannot be typed by an admin.
+- Database referential constraints protect records that are in use. When deletion is blocked, update/remove dependent records first rather than disabling foreign keys.
+- For production, force HTTPS at the web server, restrict database permissions, move secrets out of the repository, back up/test restores, rotate logs, protect the bootstrap file, and have a qualified reviewer test the deployment.

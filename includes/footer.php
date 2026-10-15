@@ -1,1 +1,5 @@
-</main></div><footer class="footer">© <?= date('Y') ?> Metropolitan International University · Student Management System</footer></body></html>
+</main>
+</div>
+<footer class="footer">© <?= date('Y') ?> Metropolitan International University · Student Information Management System</footer>
+</body>
+</html>
