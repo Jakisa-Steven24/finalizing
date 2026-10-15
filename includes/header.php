@@ -30,9 +30,7 @@
         <?php if (is_staff()): ?>
             <div class="nav-label">ACADEMIC MANAGEMENT</div>
             <?php foreach ([
-                'students' => 'Students', 'departments' => 'Departments', 'lecturers' => 'Lecturers',
-                'courses' => 'Courses', 'course_units' => 'Course units', 'enrollments' => 'Enrollments',
-                'registrations' => 'Registrations', 'marks' => 'Marks', 'fee_types' => 'Fee types', 'payments' => 'Payments'
+                'departments' => 'Departments', 'lecturers' => 'Lecturers', 'courses' => 'Courses', 'course_units' => 'Course units', 'students' => 'Students', 'enrollments' => 'Enrollments', 'fee_types' => 'Fee types', 'payments' => 'Payments', 'registrations' => 'Registrations', 'marks' => 'Marks', 
             ] as $entityKey => $entityLabel): ?>
                 <a href="records.php?entity=<?= e($entityKey) ?>">▸ &nbsp; <?= e($entityLabel) ?></a>
             <?php endforeach; ?>
