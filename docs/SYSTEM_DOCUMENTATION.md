@@ -55,6 +55,8 @@ Security choices align with the principles in the OWASP **SQL Injection Preventi
 
 ## 4. Functional modules
 
+Every management page (`records.php?entity=...`) offers the same operations: **Add**, a **View** page with all fields plus created/updated times, **Edit**, and **Delete** (POST + CSRF, with a confirmation prompt). Lists support search, entity-specific filters, sorting by any column and pagination; search also matches related records, so a student's registration number finds their payments, marks, enrollments and registrations. After viewing, editing or deleting from a filtered list, the user returns to the same filtered page.
+
 ### Academic master data
 
 - Departments
@@ -100,21 +102,25 @@ Students can download a CSV containing only their own profile, filtered marks an
 
 ## 5. Input validation specification
 
-Validation is deliberately duplicated between browser and server. Client-side patterns help a user correct a field early; **only server-side validation is trusted**.
+Validation is deliberately duplicated between browser and server. Forms are submitted with `novalidate` so the server can list every problem at once and re-fill the form with what was typed; the same patterns are emitted as HTML attributes and highlight a field while its value does not match. **Only server-side validation is trusted.** Patterns are written to work both in PHP (PCRE) and in browsers, which compile `pattern` with the `v` flag, so `/`, `(`, `)` and `-` are escaped inside character classes.
 
 | Input family | Server rule |
 |---|---|
 | Registration number | `YYL/LLL/NNN/LLL`, optionally followed by `/D` (for example, `24B/BCS/098/UMC` or `24B/BCS/098/UMC/D`) |
 | Staff/course/unit codes | Anchored regex allowing only approved letters, digits, slash/hyphen; configured length limit |
 | Human names | Anchored Unicode-letter pattern with spaces, apostrophes, full stops and hyphens |
+| Titles and locations | Unicode letters, digits, spaces and `. , & ' / ( ) -` (office locations also allow `#`), with a length range |
+| Address | Unicode letters and digits, spaces, line breaks and `. , # & ' / ( ) -`, 5–150 characters |
+| Text length | Counted in characters, not bytes, so accented names are measured correctly |
 | Email | `filter_var(..., FILTER_VALIDATE_EMAIL)` plus a maximum length |
 | Phone | Anchored `[0-9+() .-]` regex and 7–20 length limit |
 | Whole numbers | Digits only plus configured min/max |
 | Currency/scores | Non-negative decimal regex, at most two decimal places, configured ranges (mark score 0–100) |
-| Dates | Strict `Y-m-d` parse/reformat test; student age 10–120 |
+| Dates | Strict `Y-m-d` parse/reformat test; a date of birth cannot be in the future and the student must be 10–120 years old |
 | Academic year | Anchored `YYYY/YYYY` regex plus the second year must equal first + 1 |
 | Selects | Submitted value must be an allow-listed option |
 | Foreign keys | Positive integer plus lookup of the target row |
+| Uniqueness | Codes, emails, phone numbers, reference numbers, enrollments and assessments are checked before saving and reported by field name |
 | Password | 8–128 characters, lower case, upper case, digit, symbol, no whitespace |
 
 ## 6. Security architecture
@@ -183,12 +189,22 @@ Important integrity rules:
 | Symptom | First safe check |
 |---|---|
 | “Database connection failed” | Confirm database import, `MIU_DB_*` values and `mysqli` extension. Do not display or share passwords. |
-| Generic save failure | Check field validation, uniqueness and referenced records first; then review restricted application logs as an authorized operator. |
+| Save rejected | The form lists each problem by field, including duplicates and student/course mismatches. If only a generic message appears, review restricted application logs as an authorized operator. |
 | Student cannot sign up | Confirm the student already exists and exact registration number, university email and date of birth match. |
 | Student sees no record | Check the linked `student_id` in User accounts; the student must not be given staff access. |
-| Cannot delete a record | Inspect dependent records—foreign keys intentionally protect relationships. |
+| Cannot delete a record | The message names the dependent records (for example "1 lecturer and 2 courses"). Remove or reassign them first; foreign keys intentionally protect relationships. |
+| Delete happens without a prompt | Confirm `assets/app.js` loads (browser console / network tab). Inline `onsubmit` handlers are blocked by the CSP, so confirmations use `data-confirm`. |
 | Account cannot sign in | Check active status, correct credentials and temporary failed-login lock. |
 
-## 11. Maintenance boundaries
+## 11. Coding conventions
+
+- **One statement per line.** No `if (...) statement;`, no `{ a; b; }` blocks on one line, and at most one `<?php ... ?>` block per template line. Long SQL is split one clause per line and long arrays one item per line, so a PHP error line number always identifies a single statement.
+- **Controller first, template second.** Pages validate input and run queries before including `includes/header.php`; templates only display prepared data.
+- **Included templates share the page's variables.** `includes/header.php` therefore prefixes its own variables with `$nav` and unsets them afterwards. (Its sidebar loop once reused `$entityKey`, which made every management page's Add/Edit/Delete/filter controls point at the last sidebar entry.)
+- **No inline JavaScript.** The CSP allows scripts from the site only; behaviour is attached in `assets/app.js` through `data-` attributes such as `data-confirm` and `data-print-page`.
+- **New fields or entities** are added in `includes/entities.php` (label, type, validation, `unique` and `dependents` rules); `records.php` builds lists, forms, validation and SQL from that allow-list.
+- CSS uses one declaration per line, and every declaration ends with a semicolon.
+
+## 12. Maintenance boundaries
 
 This application is a secure coursework/small-institution foundation, not a substitute for a full institutional governance program. Before handling sensitive production records, establish data-retention, consent, privacy, incident-response, accessibility and backup policies appropriate to the institution and applicable law.

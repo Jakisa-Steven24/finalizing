@@ -1,4 +1,29 @@
-<?php require_once __DIR__ . '/functions.php'; ?>
+<?php
+require_once __DIR__ . '/functions.php';
+
+/*
+ * This template is included into every page and therefore shares that page's
+ * variables. Navigation variables use a $nav prefix and are unset at the end so
+ * they can never overwrite page state (for example $entityKey in records.php).
+ */
+$navEntities = [
+    'departments' => 'Departments',
+    'lecturers' => 'Lecturers',
+    'courses' => 'Courses',
+    'course_units' => 'Course units',
+    'students' => 'Students',
+    'enrollments' => 'Enrollments',
+    'fee_types' => 'Fee types',
+    'payments' => 'Payments',
+    'registrations' => 'Registrations',
+    'marks' => 'Marks',
+];
+$navScript = basename((string)($_SERVER['SCRIPT_NAME'] ?? ''));
+$navActiveEntity = '';
+if ($navScript === 'records.php') {
+    $navActiveEntity = get_string('entity') ?: 'students';
+}
+?>
 <!doctype html>
 <html lang="en">
 <head>
@@ -7,7 +32,7 @@
     <meta name="color-scheme" content="light">
     <title><?= e($pageTitle ?? APP_NAME) ?> | MIU SIMS</title>
     <link rel="stylesheet" href="assets/style.css">
-    <script src="assets/print.js" defer></script>
+    <script src="assets/app.js" defer></script>
 </head>
 <body>
 <header class="topbar">
@@ -26,26 +51,29 @@
 <?php if (!empty($_SESSION['user'])): ?>
     <aside class="sidebar" aria-label="Primary navigation">
         <div class="nav-label">WORKSPACE</div>
-        <a href="index.php">▦ &nbsp; Dashboard</a>
+        <a href="index.php"<?= nav_current_attributes($navScript === 'index.php') ?>>▦ &nbsp; Dashboard</a>
         <?php if (is_staff()): ?>
             <div class="nav-label">ACADEMIC MANAGEMENT</div>
-            <?php foreach ([
-                'departments' => 'Departments', 'lecturers' => 'Lecturers', 'courses' => 'Courses', 'course_units' => 'Course units', 'students' => 'Students', 'enrollments' => 'Enrollments', 'fee_types' => 'Fee types', 'payments' => 'Payments', 'registrations' => 'Registrations', 'marks' => 'Marks', 
-            ] as $entityKey => $entityLabel): ?>
-                <a href="records.php?entity=<?= e($entityKey) ?>">▸ &nbsp; <?= e($entityLabel) ?></a>
+            <?php foreach ($navEntities as $navEntityKey => $navEntityLabel): ?>
+                <a href="records.php?entity=<?= e($navEntityKey) ?>"<?= nav_current_attributes($navEntityKey === $navActiveEntity) ?>>▸ &nbsp; <?= e($navEntityLabel) ?></a>
             <?php endforeach; ?>
             <div class="nav-label">INSIGHTS</div>
-            <a href="reports.php">▤ &nbsp; Reports & exports</a>
-            <a href="users.php">♙ &nbsp; User accounts</a>
+            <a href="reports.php"<?= nav_current_attributes($navScript === 'reports.php') ?>>▤ &nbsp; Reports & exports</a>
+            <a href="users.php"<?= nav_current_attributes($navScript === 'users.php') ?>>♙ &nbsp; User accounts</a>
             <?php if (is_superadmin()): ?>
-                <a href="audit.php">◷ &nbsp; Audit log</a>
+                <a href="audit.php"<?= nav_current_attributes($navScript === 'audit.php') ?>>◷ &nbsp; Audit log</a>
             <?php endif; ?>
         <?php else: ?>
             <div class="nav-label">MY INFORMATION</div>
-            <a href="my_record.php">♙ &nbsp; My academic record</a>
+            <a href="my_record.php"<?= nav_current_attributes($navScript === 'my_record.php') ?>>♙ &nbsp; My academic record</a>
         <?php endif; ?>
-        <div class="sidebar-bottom">Role-based access · secure records<br><small>MIU · <?= date('Y') ?></small></div>
+        <div class="sidebar-bottom">
+            Role-based access · secure records
+            <br>
+            <small>MIU · <?= date('Y') ?></small>
+        </div>
     </aside>
 <?php endif; ?>
+<?php unset($navEntities, $navEntityKey, $navEntityLabel, $navScript, $navActiveEntity); ?>
 <main class="main-content">
 <?php show_flash(); ?>

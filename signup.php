@@ -7,7 +7,12 @@ if (!empty($_SESSION['user'])) {
 }
 
 $errors = [];
-$values = ['reg_no' => '', 'email' => '', 'date_of_birth' => '', 'username' => ''];
+$values = [
+    'reg_no' => '',
+    'email' => '',
+    'date_of_birth' => '',
+    'username' => '',
+];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
     foreach ($values as $key => $unused) {
@@ -40,14 +45,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$errors) {
         $student = db_one(
             $conn,
-            'SELECT student_id, first_name, last_name, email FROM student WHERE reg_no = ? AND email = ? AND date_of_birth = ? LIMIT 1',
+            'SELECT student_id, first_name, last_name, email FROM student'
+            . ' WHERE reg_no = ? AND email = ? AND date_of_birth = ?'
+            . ' LIMIT 1',
             'sss',
             [$values['reg_no'], $values['email'], $values['date_of_birth']]
         );
         if (!$student) {
             $errors[] = 'We could not verify that student record. Check your registration number, university email and date of birth.';
         } else {
-            $taken = db_one($conn, 'SELECT user_id FROM app_users WHERE username = ? OR email = ? OR student_id = ? LIMIT 1', 'ssi', [$values['username'], $values['email'], (int)$student['student_id']]);
+            $taken = db_one(
+                $conn,
+                'SELECT user_id FROM app_users WHERE username = ? OR email = ? OR student_id = ? LIMIT 1',
+                'ssi',
+                [$values['username'], $values['email'], (int)$student['student_id']]
+            );
             if ($taken) {
                 $errors[] = 'An account already exists for those sign-up details. Please sign in or contact an administrator.';
             } else {
@@ -55,8 +67,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $fullName = trim($student['first_name'] . ' ' . $student['last_name']);
                     $hash = password_hash($password, PASSWORD_DEFAULT);
                     $role = 'student';
-                    $stmt = $conn->prepare('INSERT INTO app_users (full_name, username, email, password_hash, role, student_id) VALUES (?, ?, ?, ?, ?, ?)');
-                    db_execute($stmt, 'sssssi', [$fullName, $values['username'], $student['email'], $hash, $role, (int)$student['student_id']]);
+                    $stmt = $conn->prepare(
+                        'INSERT INTO app_users (full_name, username, email, password_hash, role, student_id)'
+                        . ' VALUES (?, ?, ?, ?, ?, ?)'
+                    );
+                    db_execute($stmt, 'sssssi', [
+                        $fullName,
+                        $values['username'],
+                        $student['email'],
+                        $hash,
+                        $role,
+                        (int)$student['student_id'],
+                    ]);
                     audit_log($conn, 'SIGNUP', 'app_users', (int)$conn->insert_id, 'Student account created through verified sign-up');
                     flash('Your student account is ready. Please sign in.');
                     redirect_to('login.php');
@@ -78,9 +100,15 @@ require 'includes/header.php';
         <h1>Create student login</h1>
         <p class="subheading">This form creates a <strong>student</strong> account only. Your details must match a record already created by the university.</p>
         <?php if ($errors): ?>
-            <div class="alert error" role="alert"><ul><?php foreach ($errors as $error): ?><li><?= e($error) ?></li><?php endforeach; ?></ul></div>
+            <div class="alert error" role="alert">
+                <ul>
+                    <?php foreach ($errors as $error): ?>
+                        <li><?= e($error) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
         <?php endif; ?>
-        <form method="post" autocomplete="off" novalidate>
+        <form method="post" action="signup.php" autocomplete="off" novalidate>
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <div class="form-grid">
                 <div class="field">
@@ -97,7 +125,7 @@ require 'includes/header.php';
                 </div>
                 <div class="field">
                     <label for="new_username">Username *</label>
-                    <input id="new_username" name="username" required maxlength="60" pattern="[A-Za-z0-9_.-]{4,60}" autocomplete="username" value="<?= e($values['username']) ?>" placeholder="Choose a username">
+                    <input id="new_username" name="username" required maxlength="60" pattern="[A-Za-z0-9_.\-]{4,60}" autocomplete="username" value="<?= e($values['username']) ?>" placeholder="Choose a username">
                 </div>
                 <div class="field">
                     <label for="new_password">Password *</label>
