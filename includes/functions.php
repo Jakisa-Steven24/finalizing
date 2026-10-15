@@ -4,6 +4,8 @@
  * table/column identifiers come only from reviewed application configuration.
  */
 
+const REGISTRATION_NUMBER_PATTERN = '^[0-9]{2}[A-Za-z]/[A-Za-z]{3}/[0-9]{3}/[A-Za-z]{3}(?:/[Dd])?$';
+
 function app_is_https(): bool
 {
     return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
@@ -260,6 +262,11 @@ function valid_email(string $value): bool
 function valid_phone(string $value): bool
 {
     return (bool)preg_match('/^[0-9+() .-]{7,20}$/', $value);
+}
+
+function valid_registration_number(string $value): bool
+{
+    return preg_match('~' . REGISTRATION_NUMBER_PATTERN . '~uD', $value) === 1;
 }
 
 function valid_date_value(string $value): bool

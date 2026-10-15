@@ -104,7 +104,8 @@ Validation is deliberately duplicated between browser and server. Client-side pa
 
 | Input family | Server rule |
 |---|---|
-| Registration/staff/course/unit codes | Anchored regex allowing only approved letters, digits, slash/hyphen; configured length limit |
+| Registration number | `YYL/LLL/NNN/LLL`, optionally followed by `/D` (for example, `24B/BCS/098/UMC` or `24B/BCS/098/UMC/D`) |
+| Staff/course/unit codes | Anchored regex allowing only approved letters, digits, slash/hyphen; configured length limit |
 | Human names | Anchored Unicode-letter pattern with spaces, apostrophes, full stops and hyphens |
 | Email | `filter_var(..., FILTER_VALIDATE_EMAIL)` plus a maximum length |
 | Phone | Anchored `[0-9+() .-]` regex and 7–20 length limit |

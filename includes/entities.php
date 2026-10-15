@@ -21,7 +21,7 @@ $entities = [
     'students' => [
         'table' => 'student', 'title' => 'Students', 'singular' => 'student', 'pk' => 'student_id', 'default_sort' => 'reg_no',
         'fields' => [
-            'reg_no' => ['label' => 'Registration number', 'type' => 'text', 'required' => true, 'max' => 20, 'pattern' => '^[A-Za-z0-9/-]{3,20}$', 'hint' => '3–20 letters, numbers, slash or hyphen.'],
+            'reg_no' => ['label' => 'Registration number', 'type' => 'text', 'required' => true, 'max' => 17, 'pattern' => REGISTRATION_NUMBER_PATTERN, 'hint' => 'Use 24B/BCS/098/UMC or 24B/BCS/098/UMC/D.'],
             'first_name' => ['label' => 'First name', 'type' => 'text', 'required' => true, 'max' => 50, 'pattern' => "^[\\p{L} .'-]{2,50}$"],
             'last_name' => ['label' => 'Last name', 'type' => 'text', 'required' => true, 'max' => 50, 'pattern' => "^[\\p{L} .'-]{2,50}$"],
             'gender' => ['label' => 'Gender', 'type' => 'select', 'required' => true, 'options' => $genderOptions],

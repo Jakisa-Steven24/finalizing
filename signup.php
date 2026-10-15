@@ -18,8 +18,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = is_string($password) ? $password : '';
     $confirmPassword = is_string($confirmPassword) ? $confirmPassword : '';
 
-    if (!preg_match('/^[A-Za-z0-9/-]{3,20}$/', $values['reg_no'])) {
-        $errors[] = 'Enter a valid registration number.';
+    if (!valid_registration_number($values['reg_no'])) {
+        $errors[] = 'Enter a registration number in the format 24B/BCS/098/UMC or 24B/BCS/098/UMC/D.';
     }
     if (!valid_email($values['email'])) {
         $errors[] = 'Enter a valid university email address.';
@@ -85,7 +85,7 @@ require 'includes/header.php';
             <div class="form-grid">
                 <div class="field">
                     <label for="reg_no">Registration number *</label>
-                    <input id="reg_no" name="reg_no" required maxlength="20" pattern="[A-Za-z0-9/-]{3,20}" value="<?= e($values['reg_no']) ?>" placeholder="Example: 2026/CS/001">
+                    <input id="reg_no" name="reg_no" required maxlength="17" pattern="<?= e(REGISTRATION_NUMBER_PATTERN) ?>" value="<?= e($values['reg_no']) ?>" placeholder="24B/BCS/098/UMC or 24B/BCS/098/UMC/D">
                 </div>
                 <div class="field">
                     <label for="email">University email *</label>
