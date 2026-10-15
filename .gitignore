@@ -1,0 +1,6 @@
+# Runtime application logs
+logs/*.log
+!logs/.gitkeep
+
+# Local environment overrides
+.env
