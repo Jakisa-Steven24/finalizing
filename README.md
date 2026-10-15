@@ -12,9 +12,9 @@ A **procedural PHP + MySQL** Student Information Management System (SIMS) for Me
   - **Superadmins** have all admin capabilities and are the **only** role allowed to create/manage administrator or superadmin accounts and view the audit log.
 - A one-time `setup_admin.php` bootstrap that creates the first **superadmin**. It cannot create a second one.
 - Student sign-up directly from the login page. Sign-up only creates a `student` role after registration number, existing university email, and date of birth match a pre-created student record. It **cannot** create an admin account.
-- Full staff CRUD for all academic and financial entities, including the new **Marks** module.
+- Full staff CRUD on every management page: **create, view a single record, search/filter/sort/paginate, edit and delete** (with a confirmation prompt) for all ten academic and financial entities, including **Marks**, plus role-aware user-account management.
 - Filterable, searchable, sortable and paginated lists on every management page; scoped dashboard, report, audit-log and personal-record filters.
-- Server-side and HTML pattern validation. All visible inputs have placeholders or an explicit select prompt.
+- Authoritative server-side validation that lists every problem at once, with clear duplicate messages (codes, emails, phone and reference numbers) and a re-filled form. Matching HTML patterns highlight a mistyped field while typing. All visible inputs have placeholders or an explicit select prompt.
 - Filterable staff reports with printable layout and CSV download. Students can export only their own data.
 - Superadmin audit trail for create/update/delete/account actions, authentication and exports.
 - Detailed technical documentation and a Mermaid ERD: [`docs/SYSTEM_DOCUMENTATION.md`](docs/SYSTEM_DOCUMENTATION.md) and [`docs/ERD.md`](docs/ERD.md).
@@ -64,11 +64,13 @@ See the full deployment checklist in [`docs/SYSTEM_DOCUMENTATION.md`](docs/SYSTE
 | `my_record.php`, `my_export.php` | Student-scoped, read-only records and personal export |
 | `audit.php` | Superadmin troubleshooting/audit history |
 | `includes/` | Procedural security, DB, entity and reporting helpers |
+| `assets/app.js` | Print button and delete confirmations (no inline scripts, as required by the CSP) |
 
 ## Operational notes
 
 - The system deliberately does **not** ship with a default username/password. The first superadmin is installed locally through the one-time bootstrap page.
 - An account with role `student` must be linked to one existing student record. One student record can have only one login.
 - A mark is accepted only when its course unit belongs to that student's registered course. Grade is calculated server-side from score and cannot be typed by an admin.
-- Database referential constraints protect records that are in use. When deletion is blocked, update/remove dependent records first rather than disabling foreign keys.
+- Database referential constraints protect records that are in use. When deletion is blocked, the message names what is still using the record (for example "1 lecturer and 2 courses"); update/remove those records first rather than disabling foreign keys.
+- Code style: one statement per line (no one-line `if` or block bodies), long SQL split one clause per line, and one CSS declaration per line, so error messages and debuggers always point at a single statement.
 - For production, force HTTPS at the web server, restrict database permissions, move secrets out of the repository, back up/test restores, rotate logs, protect the bootstrap file, and have a qualified reviewer test the deployment.

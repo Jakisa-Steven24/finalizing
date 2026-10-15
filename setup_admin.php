@@ -6,9 +6,14 @@
 require_once 'includes/db.php';
 require_once 'includes/functions.php';
 
-$exists = (int)$conn->query("SELECT COUNT(*) AS total FROM app_users WHERE role = 'superadmin'")->fetch_assoc()['total'] > 0;
+$superadminCount = db_one($conn, "SELECT COUNT(*) AS total FROM app_users WHERE role = 'superadmin'");
+$exists = (int)($superadminCount['total'] ?? 0) > 0;
 $errors = [];
-$values = ['full_name' => '', 'username' => '', 'email' => ''];
+$values = [
+    'full_name' => '',
+    'username' => '',
+    'email' => '',
+];
 $created = false;
 
 if (!$exists && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -36,8 +41,17 @@ if (!$exists && $_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $hash = password_hash($password, PASSWORD_DEFAULT);
             $role = 'superadmin';
-            $stmt = $conn->prepare('INSERT INTO app_users (full_name, username, email, password_hash, role) VALUES (?, ?, ?, ?, ?)');
-            db_execute($stmt, 'sssss', [$values['full_name'], $values['username'], $values['email'], $hash, $role]);
+            $stmt = $conn->prepare(
+                'INSERT INTO app_users (full_name, username, email, password_hash, role)'
+                . ' VALUES (?, ?, ?, ?, ?)'
+            );
+            db_execute($stmt, 'sssss', [
+                $values['full_name'],
+                $values['username'],
+                $values['email'],
+                $hash,
+                $role,
+            ]);
             audit_log($conn, 'BOOTSTRAP', 'app_users', (int)$conn->insert_id, 'Initial superadmin created');
             $created = true;
         } catch (Throwable $exception) {
@@ -68,14 +82,34 @@ if (!$exists && $_SERVER['REQUEST_METHOD'] === 'POST') {
             <a class="btn" href="login.php">Sign in</a>
         <?php else: ?>
             <p class="subheading">Create the one account permitted to add or manage administrators. This page is for first installation only.</p>
-            <?php if ($errors): ?><div class="alert error" role="alert"><ul><?php foreach ($errors as $error): ?><li><?= e($error) ?></li><?php endforeach; ?></ul></div><?php endif; ?>
-            <form method="post" autocomplete="off" novalidate>
+            <?php if ($errors): ?>
+                <div class="alert error" role="alert">
+                    <ul>
+                        <?php foreach ($errors as $error): ?>
+                            <li><?= e($error) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+            <form method="post" action="setup_admin.php" autocomplete="off" novalidate>
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                 <div class="form-grid">
-                    <div class="field"><label for="full_name">Full name *</label><input id="full_name" name="full_name" required maxlength="100" value="<?= e($values['full_name']) ?>" placeholder="Enter superadmin full name"></div>
-                    <div class="field"><label for="username">Username *</label><input id="username" name="username" required maxlength="60" pattern="[A-Za-z0-9_.-]{4,60}" value="<?= e($values['username']) ?>" placeholder="Choose a username"></div>
-                    <div class="field"><label for="email">Email *</label><input id="email" type="email" name="email" required maxlength="120" value="<?= e($values['email']) ?>" placeholder="admin@university.edu"></div>
-                    <div class="field"><label for="password">Password *</label><input id="password" type="password" name="password" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Create a strong password"></div>
+                    <div class="field">
+                        <label for="full_name">Full name *</label>
+                        <input id="full_name" name="full_name" required maxlength="100" value="<?= e($values['full_name']) ?>" placeholder="Enter superadmin full name">
+                    </div>
+                    <div class="field">
+                        <label for="username">Username *</label>
+                        <input id="username" name="username" required maxlength="60" pattern="[A-Za-z0-9_.\-]{4,60}" value="<?= e($values['username']) ?>" placeholder="Choose a username">
+                    </div>
+                    <div class="field">
+                        <label for="email">Email *</label>
+                        <input id="email" type="email" name="email" required maxlength="120" value="<?= e($values['email']) ?>" placeholder="admin@university.edu">
+                    </div>
+                    <div class="field">
+                        <label for="password">Password *</label>
+                        <input id="password" type="password" name="password" required minlength="8" maxlength="128" autocomplete="new-password" placeholder="Create a strong password">
+                    </div>
                 </div>
                 <p class="hint"><?= e(password_rules_message()) ?></p>
                 <button class="btn" type="submit">Create initial superadmin</button>

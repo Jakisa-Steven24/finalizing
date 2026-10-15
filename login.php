@@ -17,7 +17,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($username === '' || strlen($username) > 120 || $password === '') {
         $error = 'Enter your username or email and password.';
     } else {
-        $stmt = $conn->prepare('SELECT user_id, full_name, username, email, password_hash, role, student_id, is_active, failed_login_attempts, locked_until FROM app_users WHERE username = ? OR email = ? LIMIT 1');
+        $stmt = $conn->prepare(
+            'SELECT user_id, full_name, username, email, password_hash, role, student_id, is_active,'
+            . ' failed_login_attempts, locked_until'
+            . ' FROM app_users'
+            . ' WHERE username = ? OR email = ?'
+            . ' LIMIT 1'
+        );
         db_execute($stmt, 'ss', [$username, $username]);
         $user = $stmt->get_result()->fetch_assoc();
         $now = time();
@@ -32,7 +38,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $update = $conn->prepare('UPDATE app_users SET failed_login_attempts = ?, locked_until = ? WHERE user_id = ?');
                 db_execute($update, 'isi', [$attempts, $lockedUntil, (int)$user['user_id']]);
             }
-            app_log('Unsuccessful login attempt', ['login' => substr($username, 0, 120), 'ip' => $_SERVER['REMOTE_ADDR'] ?? '']);
+            app_log('Unsuccessful login attempt', [
+                'login' => substr($username, 0, 120),
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? '',
+            ]);
             $error = 'Invalid sign-in details, or this account is temporarily unavailable.';
         } else {
             $rehash = password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT);
@@ -52,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'email' => $user['email'],
                 'role' => $user['role'],
                 'student_id' => $user['student_id'],
-                'is_active' => 1
+                'is_active' => 1,
             ];
             $_SESSION['last_activity'] = time();
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -70,10 +79,16 @@ require 'includes/header.php';
         <div class="brand-mark" style="display:inline-block;margin-bottom:18px">MIU</div>
         <h1>Welcome back</h1>
         <p class="subheading">Sign in to the secure student information portal.</p>
-        <?php if (get_string('reason') === 'timeout'): ?><div class="alert error">Your session expired after inactivity. Please sign in again.</div><?php endif; ?>
-        <?php if (get_string('reason') === 'inactive'): ?><div class="alert error">Your session is no longer active. Contact an administrator if you need help.</div><?php endif; ?>
-        <?php if ($error): ?><div class="alert error" role="alert"><?= e($error) ?></div><?php endif; ?>
-        <form method="post" autocomplete="on">
+        <?php if (get_string('reason') === 'timeout'): ?>
+            <div class="alert error">Your session expired after inactivity. Please sign in again.</div>
+        <?php endif; ?>
+        <?php if (get_string('reason') === 'inactive'): ?>
+            <div class="alert error">Your session is no longer active. Contact an administrator if you need help.</div>
+        <?php endif; ?>
+        <?php if ($error): ?>
+            <div class="alert error" role="alert"><?= e($error) ?></div>
+        <?php endif; ?>
+        <form method="post" action="login.php" autocomplete="on">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <div class="field">
                 <label for="username">Username or email</label>

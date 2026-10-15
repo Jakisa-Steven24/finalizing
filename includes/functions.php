@@ -158,7 +158,15 @@ function destroy_session(): void
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
         $parameters = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000, $parameters['path'], $parameters['domain'], (bool)$parameters['secure'], (bool)$parameters['httponly']);
+        setcookie(
+            session_name(),
+            '',
+            time() - 42000,
+            $parameters['path'],
+            $parameters['domain'],
+            (bool)$parameters['secure'],
+            (bool)$parameters['httponly']
+        );
     }
     session_destroy();
 }
@@ -254,6 +262,17 @@ function show_flash(): void
     echo '<div class="alert ' . e($flash['type'] ?? 'success') . '" role="status">' . e($flash['message'] ?? '') . '</div>';
 }
 
+/**
+ * Marks the sidebar link of the page being viewed.
+ */
+function nav_current_attributes(bool $isCurrent): string
+{
+    if ($isCurrent) {
+        return ' class="active" aria-current="page"';
+    }
+    return '';
+}
+
 function valid_email(string $value): bool
 {
     return strlen($value) <= 120 && filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
@@ -302,14 +321,65 @@ function password_rules_message(): string
 
 function grade_from_score(float $score): string
 {
-    if ($score >= 80) return 'A';
-    if ($score >= 75) return 'B+';
-    if ($score >= 70) return 'B';
-    if ($score >= 65) return 'C+';
-    if ($score >= 60) return 'C';
-    if ($score >= 55) return 'D+';
-    if ($score >= 50) return 'D';
+    if ($score >= 80) {
+        return 'A';
+    }
+    if ($score >= 75) {
+        return 'B+';
+    }
+    if ($score >= 70) {
+        return 'B';
+    }
+    if ($score >= 65) {
+        return 'C+';
+    }
+    if ($score >= 60) {
+        return 'C';
+    }
+    if ($score >= 55) {
+        return 'D+';
+    }
+    if ($score >= 50) {
+        return 'D';
+    }
     return 'F';
+}
+
+/**
+ * Counts characters (not bytes) so names such as "Zoë" are measured correctly.
+ * Works with or without the optional mbstring extension.
+ */
+function text_length(string $value): int
+{
+    if (function_exists('mb_strlen')) {
+        return mb_strlen($value, 'UTF-8');
+    }
+    $count = preg_match_all('/./us', $value);
+    return $count === false ? strlen($value) : $count;
+}
+
+/**
+ * Joins items as readable English, e.g. "1 lecturer, 2 courses and 3 students".
+ */
+function human_list(array $items): string
+{
+    $items = array_values($items);
+    if (count($items) < 2) {
+        return (string)($items[0] ?? '');
+    }
+    $last = array_pop($items);
+    return implode(', ', $items) . ' and ' . $last;
+}
+
+/**
+ * Returns the MySQL error number carried by a mysqli exception (0 when unknown).
+ */
+function db_error_code(Throwable $exception): int
+{
+    if ($exception instanceof mysqli_sql_exception) {
+        return (int)$exception->getCode();
+    }
+    return 0;
 }
 
 function sql_identifier(string $identifier): string
@@ -355,12 +425,36 @@ function foreign_key_exists(mysqli $conn, string $table, string $column, int $id
     return db_one($conn, $sql, 'i', [$id]) !== null;
 }
 
+/**
+ * Builds the SQL expression used to show a related record, e.g.
+ * "24B/BCS/098/UMC — Jane Nakato". The first display column is the identifier;
+ * any further columns are joined with spaces after an em dash.
+ */
+function foreign_label_sql(string $alias, array $field): string
+{
+    $aliasSql = sql_identifier($alias);
+    $columns = (array)$field['display'];
+    $primary = $aliasSql . '.' . sql_identifier((string)array_shift($columns));
+    if (!$columns) {
+        return $primary;
+    }
+    $details = [];
+    foreach ($columns as $column) {
+        $details[] = $aliasSql . '.' . sql_identifier((string)$column);
+    }
+    return "CONCAT_WS(' — ', " . $primary . ", CONCAT_WS(' ', " . implode(', ', $details) . '))';
+}
+
 function foreign_options(mysqli $conn, array $field): mysqli_result
 {
+    $alias = 'option_row';
     $table = sql_identifier($field['ref']);
     $pk = sql_identifier($field['refpk']);
-    $display = sql_identifier($field['display']);
-    return $conn->query('SELECT ' . $pk . ' AS id, ' . $display . ' AS label FROM ' . $table . ' ORDER BY label ASC, id ASC');
+    $label = foreign_label_sql($alias, $field);
+    $sql = 'SELECT ' . sql_identifier($alias) . '.' . $pk . ' AS id, ' . $label . ' AS label'
+        . ' FROM ' . $table . ' ' . sql_identifier($alias)
+        . ' ORDER BY label ASC, id ASC';
+    return $conn->query($sql);
 }
 
 function audit_log(mysqli $conn, string $action, string $entity, int $recordId, string $description): void
@@ -368,8 +462,18 @@ function audit_log(mysqli $conn, string $action, string $entity, int $recordId, 
     try {
         $userId = !empty($_SESSION['user']['user_id']) ? (int)$_SESSION['user']['user_id'] : null;
         $ip = substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
-        $stmt = $conn->prepare('INSERT INTO audit_log (user_id, action, entity, record_id, description, ip_address) VALUES (?, ?, ?, ?, ?, ?)');
-        db_execute($stmt, 'ississ', [$userId, substr($action, 0, 30), substr($entity, 0, 60), $recordId ?: null, substr($description, 0, 255), $ip ?: null]);
+        $stmt = $conn->prepare(
+            'INSERT INTO audit_log (user_id, action, entity, record_id, description, ip_address)'
+            . ' VALUES (?, ?, ?, ?, ?, ?)'
+        );
+        db_execute($stmt, 'ississ', [
+            $userId,
+            substr($action, 0, 30),
+            substr($entity, 0, 60),
+            $recordId ?: null,
+            substr($description, 0, 255),
+            $ip ?: null,
+        ]);
     } catch (Throwable $exception) {
         app_log('Audit write failed', ['message' => $exception->getMessage(), 'entity' => $entity]);
     }
